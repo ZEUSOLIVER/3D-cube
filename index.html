@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D cube</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="Canvas" width="600" height="600"></canvas>
+  <p1>Distance: </p1>
+  <input type="range" id="slider" min="1" max="900" value="300">
+  <p1>Pespective: </p1>
+  <input type="range" id="slider3" min="150" max="900" value="300">
+  <p1>Speed: </p1>
+  <input type="range" id="slider2" min="-5" max="5" value="1">
+  <script>
+	let slider = document.getElementById("slider")
+	let slider2 = document.getElementById("slider2")
+	let slider3 = document.getElementById("slider3")
+    	const canvas = document.getElementById("Canvas");
+    	const ctx = canvas.getContext("2d");
+	let cube = [
+  	{ x: -1, y: -1, z: -1 },
+  	{ x:  1, y: -1, z: -1 },
+  	{ x:  1, y:  1, z: -1 },
+  	{ x: -1, y:  1, z: -1 },
+  	{ x: -1, y: -1, z:  1 },
+  	{ x:  1, y: -1, z:  1 },
+  	{ x:  1, y:  1, z:  1 },
+  	{ x: -1, y:  1, z:  1 }
+	];
+	function rotateY(point, angle) {
+  		const cos = Math.cos(angle);
+  		const sin = Math.sin(angle);
+  		return {
+    		x: point.x * cos - point.z * sin,
+    		y: point.y,
+    		z: point.x * sin + point.z * cos
+		
+
+		/*x: point.x,
+		y: point.y-point.z*sin,
+		z: point.x+sin*cos*/
+
+		/*x:point.x,
+		y:point.y,
+		z:point.z*/
+  		};
+	}
+	function project(point) {
+  		const scale = slider.value;
+  		const distance = slider3.value/100;
+  		const z = point.z + distance;
+  		return {
+  			x: canvas.width / 2 + (point.x * scale) / z,
+    			y: canvas.height / 2 + (point.y * scale) / z
+  		};
+	}
+	function drawCube(angle) {
+  		ctx.clearRect(0, 0, canvas.width, canvas.height);
+  		const rotated = cube.map(p => rotateY(p, angle));
+  		const projected = rotated.map(project);
+
+  		const edges = [
+  		  [0,1],[1,2],[2,3],[3,0],
+  		  [4,5],[5,6],[6,7],[7,4],
+  		  [0,4],[1,5],[2,6],[3,7]
+  		];
+
+  		ctx.beginPath();
+  		edges.forEach(([a, b]) => {
+   			ctx.moveTo(projected[a].x, projected[a].y);
+   			ctx.lineTo(projected[b].x, projected[b].y);
+  		});
+  		ctx.stroke();
+	}
+
+	let angle = 0;
+	function animate() {
+  		drawCube(angle);
+  		angle += slider2.value/100;
+  		requestAnimationFrame(animate);
+	}
+	animate();
+
+
+
+
+  </script>
+</body>
+</html>
