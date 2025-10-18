@@ -17,7 +17,7 @@
   <p1>Zoom: </p1>
   <input type="range" id="slider" min="1" max="900" value="600">
   <p1>Distance: </p1>
-  <input type="range" id="slider3" min="150" max="900" value="400">
+  <input type="range" id="slider3" min="150" max="900" value="600">
   <p1>Speed: </p1>
   <input type="range" id="slider2" min="-5" max="5" value="1">
   <p1>IgnoreZ</p1>
@@ -90,7 +90,7 @@
   		const scale = slider.value;
   		const distance = slider3.value/100;
   		const z = point.z + distance;
-		if (ignoreZ.checked == false && z >= 6){
+		if (ignoreZ.checked == false && z >= 7.5){
 			return 0
 		}
   		return {
