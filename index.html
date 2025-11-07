@@ -28,6 +28,8 @@
   <input type="range" id="TranslateXZ" min="-180" max="180" value="0">
   <p1>TranslateXZ</p1>
   <input type="range" id="TranslateYZ" min="-180" max="180" value="0">
+  <p1>PS1 Graphics</p1>
+  <input type="checkbox" id="PS1GPHC">
   <script>
 	let slider = document.getElementById("slider")
 	let slider2 = document.getElementById("slider2")
@@ -58,6 +60,7 @@
 	{x: 1, y: 1, z: 1},
 	]
 
+	let PS1GPHC = document.getElementById("PS1GPHC")
 	let ignoreZ = document.getElementById("IgnoreZToDraw")
 	let trianglecheck = document.getElementById("TriangleBox")
 	let tXZ = document.getElementById("TranslateXZ")
@@ -115,9 +118,15 @@
 		if (z <= 0){
 			return 0
 		}
+		if (PS1GPHC.checked == true){
+			return {
+				x: Math.floor((canvas.width / 2 + (point.x * scale)/z)/4)*4,
+    				y: Math.floor((canvas.height / 2 + (point.y * scale)/z)/4)*4
+			}
+		}
   		return {
-  			x: Math.floor((canvas.width / 2 + (point.x * scale)/z)/4)*4,
-    			y: Math.floor((canvas.height / 2 + (point.y * scale)/z)/4)*4
+  			x: canvas.width / 2 + (point.x * scale)/z,
+    			y: canvas.height / 2 + (point.y * scale)/z
   		};
 	}
 	function drawCube(mesh, pos_x, pos_y, pos_z, angle_x, angle_y, angle_z, edges) {
