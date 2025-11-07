@@ -15,19 +15,19 @@
 <body>
   <canvas id="Canvas" width="600" height="600"></canvas>
   <p1>Zoom: </p1>
-  <input type="range" id="slider" min="1" max="900" value="600">
+  <input type="range" id="slider" min="1" max="900" value="300">
   <p1>Distance: </p1>
-  <input type="range" id="slider3" min="150" max="900" value="500">
+  <input type="range" id="slider3" min="150" max="900" value="400">
   <p1>Speed: </p1>
-  <input type="range" id="slider2" min="-5" max="5" value="1">
+  <input type="range" id="slider2" min="-5" max="5" value="0">
   <p1>IgnoreZ</p1>
   <input type="checkbox" id="IgnoreZToDraw">
   <p1>Triangle</p1>
   <input type="checkbox" id="TriangleBox">
   <p1>TranslateYZ</p1>
-  <input type="checkbox" id="TranslateXZ">
+  <input type="range" id="TranslateXZ" min="-180" max="180" value="0">
   <p1>TranslateXZ</p1>
-  <input type="checkbox" id="TranslateYZ">
+  <input type="range" id="TranslateYZ" min="-180" max="180" value="0">
   <script>
 	let slider = document.getElementById("slider")
 	let slider2 = document.getElementById("slider2")
@@ -47,9 +47,9 @@
 	let triangle = [
 	{x: -1, y: 1, z: -1},
 	{x: 1, y: 1, z: -1},
-	{x: 0, y: -1, z: 0},
 	{x: 1, y: 1, z: 1},
-	{x: -1, y: 1, z: 1}
+	{x: -1, y: 1, z: 1},
+	{x: 0, y: -1, z: 0}
 	]
 	let customMesh = [
 	{x: -1, y: 1, z: 1},
@@ -66,26 +66,45 @@
 	function multiMatrix(matrix1, matrix2, matrix3){
 		
 	}
-	function translateXYZ(point, angle) {
+	function rotateYZ(point, angle) {
   		const cos = Math.cos(angle);
   		const sin = Math.sin(angle);
 		/*let p4 = multiMatrix(p1, p2, p3)*/
-		let YZ = {
-		x: point.x*cos-point.z*sin, 
-		y: point.y, 
-		z: point.x*sin+point.z*cos}
-		let XZ = {
-		x: point.x,
-		y: point.y*cos-point.z*sin,
-		z: point.y*sin+point.z*cos}
-		if (tXZ.checked == true){
-			return XZ
+		return {
+			x: point.x,
+			y: point.y*cos-point.z*sin,
+			z: point.y*sin+point.z*cos
 		}
-		if (tYZ.checked == true){
-			return YZ
-		}
-  		return YZ
 	}
+	function rotateXZ(point, angle){
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
+
+		return {
+			x: point.x*cos-point.z*sin,
+			y: point.y,
+			z: point.x*sin+point.z*cos
+		}
+	}
+	function rotateXY(point, angle){
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
+		
+		return {
+			x: point.x*cos-point.y*sin,
+			y: point.x*sin+point.y*cos,
+			z: point.z
+		}
+	}
+
+	function translateXYZ(point, pos_x, pos_y, pos_z){
+		return {
+			x: point.x+pos_x,
+			y: point.y+pos_y,
+			z: point.z+pos_z
+		}
+}
+
 	function project(point, angle){
   		const scale = slider.value;
   		const distance = slider3.value/100;
@@ -93,21 +112,20 @@
 		if (ignoreZ.checked == false && z >= 7.5){
 			return 0
 		}
+		if (z <= 0){
+			return 0
+		}
   		return {
-  			x: canvas.width / 2 + (point.x * scale) / z,
-    			y: canvas.height / 2 + (point.y * scale) / z
+  			x: Math.floor((canvas.width / 2 + (point.x * scale)/z)/4)*4,
+    			y: Math.floor((canvas.height / 2 + (point.y * scale)/z)/4)*4
   		};
 	}
-	function drawCube(angle) {
-  		ctx.clearRect(0, 0, canvas.width, canvas.height);
-  		const rotated = cube.map(p => translateXYZ(p, angle));
-  		const projected = rotated.map(project);
-
-  		const edges = [
-  		  [0,1],[1,2],[2,3],[3,0],
-  		  [4,5],[5,6],[6,7],[7,4],
-  		  [0,4],[1,5],[2,6],[3,7]
-  		];
+	function drawCube(mesh, pos_x, pos_y, pos_z, angle_x, angle_y, angle_z, edges) {
+		const translated = mesh.map(p => translateXYZ(p, pos_x, pos_y, pos_z))
+  		const rotatedXZ = translated.map(p => rotateXZ(p, angle_x));
+		const rotatedYZ = rotatedXZ.map(p => rotateYZ(p, angle_y))
+		const rotatedXY = rotatedYZ.map(p => rotateXY(p, angle_z))
+  		const projected = rotatedXY.map(project);
 
   		ctx.beginPath();
 		ctx.strokeStyle = "black";
@@ -117,33 +135,23 @@
   		});
   		ctx.stroke();
 	}
-	function drawTriangle(angle){
-		/*ctx.clearRect(0, 0, canvas.width, canvas.height);*/
-		const rotated = triangle.map(p => translateXYZ(p, angle))
-		const projected = rotated.map(project)
-
-		const edges = [
-  		  [0,1], [1,3], [3, 4], [0, 4],
-		  [4, 2], [3, 2], [1, 2], [0, 2]
-  		];
-
-		ctx.beginPath();
-		ctx.strokeStyle = "blue";
-  		edges.forEach(([a, b]) => {
-   			ctx.moveTo(projected[a].x, projected[a].y);
-   			ctx.lineTo(projected[b].x, projected[b].y);
-  		});
-  		ctx.stroke();
-	}
 
 	let angle = 0;
 	function animate() {
-		drawCube(angle);
-		if (trianglecheck.checked == true){
-			drawTriangle(angle);
-		}
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		edges = [
+  		  	[0,1],[1,2],[2,3],[3,0],
+			[4,5],[5,6],[6,7],[7,4],
+			[4,0],[5,1],[6,2],[7,3]
+  		];
+		drawCube(cube, 0, 0, 0, angle+tXZ.value*3.14/180, tYZ.value*3.14/180, 0, edges);
+		edges = [
+  		  	[0,1],[1,2],[2,3],[3,0],
+			[0,4],[4,1],[2,4],[3,4]
+  		];
+		drawCube(triangle, 0, -2.4+Math.sin(angle*4)/4, 0, angle+tXZ.value*3.14/180, tYZ.value*3.14/180, 0, edges);
 		/**/
-		angle += 0.02;
+		angle += (0.02+slider2.value/100);
   		/*angle = (1-0.08)*angle+0.08*(slider2.value);*/
   		requestAnimationFrame(animate);
 	}
