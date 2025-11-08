@@ -17,19 +17,21 @@
   <p1>Zoom: </p1>
   <input type="range" id="slider" min="1" max="900" value="300">
   <p1>Distance: </p1>
-  <input type="range" id="slider3" min="150" max="900" value="400">
+  <input type="range" id="slider3" min="150" max="900" value="900">
   <p1>Speed: </p1>
   <input type="range" id="slider2" min="-5" max="5" value="0">
   <p1>IgnoreZ</p1>
   <input type="checkbox" id="IgnoreZToDraw">
-  <p1>Triangle</p1>
-  <input type="checkbox" id="TriangleBox">
   <p1>TranslateYZ</p1>
   <input type="range" id="TranslateXZ" min="-180" max="180" value="0">
   <p1>TranslateXZ</p1>
   <input type="range" id="TranslateYZ" min="-180" max="180" value="0">
   <p1>PS1 Graphics</p1>
   <input type="checkbox" id="PS1GPHC">
+  <p1>Camera angle: </p1>
+  <input type="range" id="clantXZ" min="-180" max="180" value="0">
+  <input type="range" id="clantYZ" min="-180" max="180" value="-45">
+  <input type="range" id="clantXY" min="-180" max="180" value="0">
   <script>
 	let slider = document.getElementById("slider")
 	let slider2 = document.getElementById("slider2")
@@ -53,12 +55,29 @@
 	{x: -1, y: 1, z: 1},
 	{x: 0, y: -1, z: 0}
 	]
-	let customMesh = [
-	{x: -1, y: 1, z: 1},
-	{x: 1, y: 1, z: 1},
-	{x: -1, y: 1, z: 1},
-	{x: 1, y: 1, z: 1},
+	let plane = [
+	{x: -4, y: 0, z: 4},
+	{x: 4, y: 0, z: 4},
+	{x: 4, y: 0, z: -4},
+	{x: -4, y: 0, z: -4},
+	{x: -2, y: 1, z: 2},
+	{x: 2, y: 1, z: 2},
+	{x: 2, y: 1, z: -2},
+	{x: -2, y: 1, z: -2},
+	{x: -5, y: 1, z: 5},
+	{x: 5, y: 1, z: 5},
+	{x: 5, y: 1, z: -5},
+	{x: -5, y: 1, z: -5}
 	]
+
+	let camera = {
+		x: 0,
+		y: 0,
+		z: 0,
+		camera_angle_x: 0,
+		camera_angle_y: 0,
+		camera_angle_z: 0
+	}
 
 	let PS1GPHC = document.getElementById("PS1GPHC")
 	let ignoreZ = document.getElementById("IgnoreZToDraw")
@@ -108,11 +127,52 @@
 		}
 }
 
+	function cameraTranslate(point){
+		return {
+			x: point.x+camera.x,
+			y: point.y+camera.y,
+			z: point.z+camera.z
+		}
+	}
+
+	function cameraRotateXZ(point, angle){
+		const cos = Math.cos(-angle)
+		const sin = Math.sin(-angle)
+
+		return {
+			x: point.x*cos-point.z*sin,
+			y: point.y,
+			z: point.x*sin+point.z*cos
+		}
+	}
+
+	function cameraRotateYZ(point, angle){
+		const cos = Math.cos(-angle)
+		const sin = Math.sin(-angle)
+		
+		return {
+			x: point.x,
+			y: point.y*cos-point.z*sin,
+			z: point.y*sin+point.z*cos
+		}
+	}
+
+	function cameraRotateXY(point, angle){
+		const cos = Math.cos(-angle)
+		const sin = Math.sin(-angle)
+
+		return {
+			x: point.x*cos-point.y*sin,
+			y: point.x*sin+point.y*cos,
+			z: point.z
+		}
+	}
+
 	function project(point, angle){
   		const scale = slider.value;
   		const distance = slider3.value/100;
   		const z = point.z + distance;
-		if (ignoreZ.checked == false && z >= 7.5){
+		if (ignoreZ.checked == true && z >= 7.5){
 			return 0
 		}
 		if (z <= 0){
@@ -120,8 +180,8 @@
 		}
 		if (PS1GPHC.checked == true){
 			return {
-				x: Math.floor((canvas.width / 2 + (point.x * scale)/z)/4)*4,
-    				y: Math.floor((canvas.height / 2 + (point.y * scale)/z)/4)*4
+				x: Math.floor((canvas.width / 2 + (point.x * scale)/z)/5)*5,
+    				y: Math.floor((canvas.height / 2 + (point.y * scale)/z)/5)*5
 			}
 		}
   		return {
@@ -134,31 +194,46 @@
   		const rotatedXZ = translated.map(p => rotateXZ(p, angle_x));
 		const rotatedYZ = rotatedXZ.map(p => rotateYZ(p, angle_y))
 		const rotatedXY = rotatedYZ.map(p => rotateXY(p, angle_z))
-  		const projected = rotatedXY.map(project);
+		const cameraTranslated = rotatedXY.map(p => cameraTranslate(p, pos_x, pos_y, pos_z))
+		const cameraRotatedXZ = cameraTranslated.map(p => cameraRotateXZ(p, camera.camera_angle_x))
+		const cameraRotatedYZ = cameraRotatedXZ.map(p => cameraRotateYZ(p, camera.camera_angle_y))
+		const cameraRotatedXY = cameraRotatedYZ.map(p => cameraRotateXY(p, camera.camera_angle_z))
+  		const projected = cameraRotatedXY.map(project);
 
   		ctx.beginPath();
 		ctx.strokeStyle = "black";
   		edges.forEach(([a, b]) => {
    			ctx.moveTo(projected[a].x, projected[a].y);
-   			ctx.lineTo(projected[b].x, projected[b].y);
+   			ctx.lineTo(projected[b].x, projected[b].y);	
   		});
   		ctx.stroke();
 	}
 
 	let angle = 0;
 	function animate() {
+		camera.camera_angle_x = document.getElementById("clantXZ").value*3.14/180+angle
+		camera.camera_angle_y = document.getElementById("clantYZ").value*3.14/180
+		camera.camera_angle_z = document.getElementById("clantXY").value*3.14/180
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		edges = [
   		  	[0,1],[1,2],[2,3],[3,0],
 			[4,5],[5,6],[6,7],[7,4],
 			[4,0],[5,1],[6,2],[7,3]
   		];
-		drawCube(cube, 0, 0, 0, angle+tXZ.value*3.14/180, tYZ.value*3.14/180, 0, edges);
+		drawCube(cube, 0, 0, 0, tXZ.value*3.14/180, tYZ.value*3.14/180, 0, edges);
 		edges = [
   		  	[0,1],[1,2],[2,3],[3,0],
 			[0,4],[4,1],[2,4],[3,4]
   		];
-		drawCube(triangle, 0, -2.4+Math.sin(angle*4)/4, 0, angle+tXZ.value*3.14/180, tYZ.value*3.14/180, 0, edges);
+		drawCube(triangle, 0, -2.4+Math.sin(angle*4)/4, 0, 0, 0, 0, edges);
+		edges = [
+  		  	[0,1],[1,2],[2,3],[3,0],
+			[4,5],[5,6],[6,7],[7,4],
+			[0,4],[1,5],[2,6],[3,7],
+			[0,8],[1,9],[2,10],[3,11],
+			[8,9],[9,10],[10,11],[11,8]
+  		];
+		drawCube(plane, 0, 0, 0, 0, 0, 0, edges);
 		/**/
 		angle += (0.02+slider2.value/100);
   		/*angle = (1-0.08)*angle+0.08*(slider2.value);*/
